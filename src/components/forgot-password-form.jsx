@@ -18,13 +18,13 @@ import { useState } from "react";
 export function ForgotPasswordForm({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}) {
   const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleForgotPassword = async (e) => {
     e.preventDefault();
     const supabase = createClient();
     setIsLoading(true);
@@ -37,7 +37,7 @@ export function ForgotPasswordForm({
       });
       if (error) throw error;
       setSuccess(true);
-    } catch (error: unknown) {
+    } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);

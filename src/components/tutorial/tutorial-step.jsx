@@ -1,12 +1,6 @@
 import { Checkbox } from "../ui/checkbox";
 
-export function TutorialStep({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+export function TutorialStep({ title, children }) {
   return (
     <li className="relative">
       <Checkbox
