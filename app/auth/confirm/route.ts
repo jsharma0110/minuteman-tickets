@@ -8,7 +8,9 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
   const _next = searchParams.get('next')
-  const next = _next?.startsWith('/') ? _next : '/'
+
+  // Default redirect is now /events instead of /
+  const next = _next?.startsWith('/') ? _next : '/events'
 
   if (token_hash && type) {
     const supabase = await createClient()
@@ -17,15 +19,15 @@ export async function GET(request: NextRequest) {
       type,
       token_hash,
     })
+
     if (!error) {
-      // redirect user to specified redirect URL or root of app
+      // ✅ Redirect to /events (or the provided next param)
       redirect(next)
     } else {
-      // redirect the user to an error page with some instructions
-      redirect(`/auth/error?error=${error?.message}`)
+      redirect(`/auth/error?error=${encodeURIComponent(error?.message)}`)
     }
   }
 
-  // redirect the user to an error page with some instructions
+  // If token or type missing → error page
   redirect(`/auth/error?error=No token hash or type`)
 }
