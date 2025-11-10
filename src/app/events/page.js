@@ -1,18 +1,20 @@
 import SearchBar from "../../components/SearchBar.jsx";
 import ToggleButtons from "../../components/ToggleButtons.jsx";
 import EventCard from "../../components/EventCard.jsx";
-import { getEvents } from "../../api/getEvents";
+import { getEvents } from "../api/getEvents.js";
 
 export default async function EventsPage() {
   const fetched = await getEvents();
   console.log(fetched);
   // Map fetched data to EventCard props with safe fallbacks
-  const events = (fetched && Array.isArray(fetched) ? fetched : []).map((e) => ({
-    title: e?.title ?? e?.name ?? "Untitled Event",
-    location: e?.location ?? "",
-    date: e?.date ?? "",
-    imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.JPG",
-  }));
+  const events = (fetched && Array.isArray(fetched) ? fetched : []).map(
+    (e) => ({
+      title: e?.title ?? e?.name ?? "Untitled Event",
+      location: e?.location ?? "",
+      date: e?.date ?? "",
+      imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.JPG",
+    })
+  );
   // If no data returned, show sample items
   const items = events.length
     ? events
@@ -33,7 +35,6 @@ export default async function EventsPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 py-10 px-4">
-      
       {/* Header */}
       <header className="flex flex-col items-center mb-8">
         <h1 className="text-2xl font-bold tracking-tight">MinuteMan Events</h1>
