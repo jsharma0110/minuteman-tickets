@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MinuteMan Tickets
 
-## Getting Started
+![UMass Minutemen logo](./public/images/b05cfb_UMass_logo.jpg.webp)
 
-First, run the development server:
+MinuteMan Tickets is a campus-only ticket marketplace for UMass Amherst students. It provides a streamlined way to list, discover, and manage tickets for basketball games, concerts, and other campus events. Authentication, password recovery, and session management are handled by Supabase, while the UI is built with the Next.js App Router and Tailwind CSS.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Features
+
+- **UMass-only access** – the app is designed for @umass.edu addresses; configure Supabase to block non-UMass sign ups.
+- **Supabase authentication** – sign up, email verification, login, logout, password reset, and password update flows.
+- **Events dashboard** – responsive grid of events with search input, buy/sell toggles, and ticket cards fed by the `events` table.
+- **Protected routes** – authenticated pages use Supabase middleware to persist sessions and redirect anonymous users to the login screen.
+- **Reusable UI components** – shared card, button, input, and form elements powered by Tailwind CSS 4 and Radix primitives.
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19
+- Supabase (auth + Postgres data)
+- Tailwind CSS 4 / tailwind-merge / clsx
+- Radix UI primitives
+- TypeScript
+
+## Project Structure
+
+```
+app/
+  auth/               Auth routes (login, sign-up, password flows)
+  events/             Main events dashboard (client page)
+  protected/          Example authed-only page
+  api/
+  ui/                 Tailwind/Radix UI primitives
+lib/
+  supabase/           Browser + server Supabase clients and middleware
+  utils.ts            Tailwind class combiner helper
+public/images/        Campus imagery & event artwork
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Flows
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Sign Up** (`/auth/sign-up`) – creates a Supabase auth user; redirect target is `/protected` once the email link is confirmed.
+- **Login** (`/auth/login`) – authenticates existing students; on success users land on `/events`.
+- **Forgot Password / Update Password** – full email-based password reset using Supabase redirect URLs.
+- **Events Dashboard** (`/events`) – client component that calls `getEvents()` to read from Supabase, renders `EventCard` components, and includes logout.
+- **Session Middleware** (`proxy.ts`) – wraps all routes and redirects anonymous visitors to the login page.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
