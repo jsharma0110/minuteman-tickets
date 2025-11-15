@@ -68,6 +68,10 @@ export default function EventsPage() {
     router.push("/auth/login")
   }
 
+  const goToProfile = () => {
+    router.push("/users")
+  }
+
   return (
     <div className="flex min-h-screen w-full items-start justify-center bg-background py-10 px-4">
       <div className="relative w-full max-w-5xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
@@ -81,7 +85,7 @@ export default function EventsPage() {
           className="h-60 w-full object-cover"
         />
 
-        {/* Header + Logout */}
+        {/* Header + Actions */}
         <header className="flex items-center justify-between px-6 pt-4">
           <div className="flex-1 text-center">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -92,10 +96,17 @@ export default function EventsPage() {
             </p>
           </div>
 
-          <div className="absolute right-6 top-6">
+          <div className="absolute right-6 top-6 flex gap-2">
             <Button
               variant="outline"
-              className="border-none bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
+              className="border-none bg-secondary text-xs text-foreground shadow-md hover:bg-secondary/80"
+              onClick={goToProfile}
+            >
+              Profile
+            </Button>
+            <Button
+              variant="outline"
+              className="border-none bg-primary text-xs text-primary-foreground shadow-md hover:bg-primary/90"
               onClick={handleLogout}
             >
               Logout
@@ -126,7 +137,7 @@ export default function EventsPage() {
             ))}
           </div>
 
-        {/* Empty state */}
+          {/* Empty state */}
           {events.length === 0 && (
             <div className="mt-16 text-center text-muted-foreground">
               No events found. Try changing your search.
