@@ -1,0 +1,139 @@
+'use client'
+
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import SearchBar from "../../components/SearchBar.jsx"
+import ToggleButtons from "../../components/ToggleButtons.jsx"
+import EventCard from "../../components/EventCard.jsx"
+import { getEvents } from "../api/getEvents"
+import { useEffect, useState } from "react"
+
+// 1) Strong type for your page data
+type EventItem = {
+  title: string
+  location: string
+  date: string
+  imageUrl: string
+}
+
+export default function EventsPage() {
+  // 2) Tell TS this is an array of EventItem
+  const [events, setEvents] = useState<EventItem[]>([])
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        // If getEvents is JS/unknown, treat as any[]
+        const fetched: any[] | null = await getEvents().catch(() => null)
+
+        const mapped: EventItem[] =
+          Array.isArray(fetched) && fetched.length
+            ? fetched.map((e: any): EventItem => ({
+                title: e?.title ?? e?.name ?? "Untitled Event",
+                location: e?.location ?? "",
+                date: e?.date ?? "",
+                imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
+              }))
+            : [
+                {
+                  title: "UMass vs UConn Basketball Game",
+                  location: "Mullins Center",
+                  date: "Feb 15, 2026",
+                  imageUrl: "/images/Mullins_Center_2014.jpeg",
+                },
+                {
+                  title: "A Boogie Wit Da Hoodie",
+                  location: "Mullins Center",
+                  date: "Nov 15, 2025",
+                  imageUrl: "/images/aboogie.png",
+                },
+              ]
+
+        setEvents(mapped)
+      } catch (error) {
+        console.error("Failed to fetch events:", error)
+        setEvents([])
+      }
+    }
+
+    fetchEvents()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push("/auth/login")
+  }
+
+  return (
+    <div className="flex min-h-screen w-full items-start justify-center bg-background py-10 px-4">
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        {/* Banner */}
+        <Image
+          src="/images/umass-campus.jpg"
+          alt="UMass Amherst Campus"
+          width={1600}
+          height={500}
+          priority
+          className="h-60 w-full object-cover"
+        />
+
+        {/* Header + Logout */}
+        <header className="flex items-center justify-between px-6 pt-4">
+          <div className="flex-1 text-center">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              Minuteman Events
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Find games, concerts, and campus happenings
+            </p>
+          </div>
+
+          <div className="absolute right-6 top-6">
+            <Button
+              variant="outline"
+              className="border-none bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </div>
+        </header>
+
+        {/* Search */}
+        <div className="mx-auto mt-6 w-full max-w-md px-6">
+          <SearchBar />
+        </div>
+
+        {/* Optional toggles */}
+        {/* <div className="mt-4 px-6">
+          <ToggleButtons />
+        </div> */}
+
+        {/* Events */}
+        <section className="px-6 pb-10 pt-8">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => (
+              <div
+                key={`${event.title}-${event.date}`}
+                className="rounded-lg border border-border bg-secondary/30 p-3 text-foreground"
+              >
+                <EventCard {...event} />
+              </div>
+            ))}
+          </div>
+
+        {/* Empty state */}
+          {events.length === 0 && (
+            <div className="mt-16 text-center text-muted-foreground">
+              No events found. Try changing your search.
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}
