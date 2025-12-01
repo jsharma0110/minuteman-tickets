@@ -1,16 +1,19 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import TicketListingModal from "./TicketListingModal";
 
-
 export default function BuySellFilter({ umassEvent }) {
-  const [active, setActive] = useState("Buy");
+  const router = useRouter();
+  const [active, setActive] = useState("buy");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleClick = (label) => {
     setActive(label);
     if (label === "Sell") {
       setIsModalOpen(true);
+    } else if (label === "Buy") {
+      router.push(`/events/${umassEvent.id}/buy`);
     }
   };
 

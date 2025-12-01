@@ -1,76 +1,82 @@
-'use client'
+"use client";
 
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import SearchBar from "../../components/SearchBar.jsx"
-import ToggleButtons from "../../components/ToggleButtons.jsx"
-import EventCard from "../../components/EventCard.jsx"
-import { getEvents } from "../api/getEvents"
-import { useEffect, useState } from "react"
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import SearchBar from "../../components/SearchBar.jsx";
+import ToggleButtons from "../../components/ToggleButtons.jsx";
+import EventCard from "../../components/EventCard";
+import { getEvents } from "../api/getEvents";
+import { useEffect, useState } from "react";
 
 // 1) Strong type for your page data
 type EventItem = {
-  title: string
-  location: string
-  date: string
-  imageUrl: string
-  id: string
-}
+  title: string;
+  location: string;
+  date: string;
+  imageUrl: string;
+  id: string;
+};
 
 export default function EventsPage() {
   // 2) Tell TS this is an array of EventItem
-  const [events, setEvents] = useState<EventItem[]>([])
-  const router = useRouter()
-  const supabase = createClient()
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         // If getEvents is JS/unknown, treat as any[]
-        const fetched: any[] | null = await getEvents().catch(() => null)
+        const fetched: any[] | null = await getEvents().catch(() => null);
 
         const mapped: EventItem[] =
           Array.isArray(fetched) && fetched.length
-            ? fetched.map((e: any): EventItem => ({
-                title: e?.title ?? e?.name ?? "Untitled Event",
-                location: e?.location ?? "",
-                date: e?.date ?? "",
-                imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
-                id: e?.id ?? ""
-              }))
+            ? fetched.map(
+                (e: any): EventItem => ({
+                  title: e?.title ?? e?.name ?? "Untitled Event",
+                  location: e?.location ?? "",
+                  date: e?.date ?? "",
+                  imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
+                  id: e?.id ?? "",
+                })
+              )
             : [
                 {
                   title: "UMass vs UConn Basketball Game",
                   location: "Mullins Center",
                   date: "Feb 15, 2026",
                   imageUrl: "/images/Mullins_Center_2014.jpeg",
-                  id: "1"
+                  id: "1",
                 },
                 {
                   title: "A Boogie Wit Da Hoodie",
                   location: "Mullins Center",
                   date: "Nov 15, 2025",
                   imageUrl: "/images/aboogie.png",
-                  id: "2"
+                  id: "2",
                 },
-              ]
+              ];
 
-        setEvents(mapped)
+        setEvents(mapped);
       } catch (error) {
-        console.error("Failed to fetch events:", error)
-        setEvents([])
+        console.error("Failed to fetch events:", error);
+        setEvents([]);
       }
-    }
+    };
 
-    fetchEvents()
-  }, [])
+    fetchEvents();
+  }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/auth/login")
-  }
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  };
+
+  const goToProfile = () => {
+    router.push("/users");
+  };
 
   return (
     <div className="flex min-h-screen w-full items-start justify-center bg-background py-10 px-4">
@@ -85,7 +91,7 @@ export default function EventsPage() {
           className="h-60 w-full object-cover"
         />
 
-        {/* Header + Logout */}
+        {/* Header + Actions */}
         <header className="flex items-center justify-between px-6 pt-4">
           <div className="flex-1 text-center">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -96,10 +102,17 @@ export default function EventsPage() {
             </p>
           </div>
 
-          <div className="absolute right-6 top-6">
+          <div className="absolute right-6 top-6 flex gap-2">
             <Button
               variant="outline"
-              className="border-none bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
+              className="border-none bg-secondary text-xs text-foreground shadow-md hover:bg-secondary/80"
+              onClick={goToProfile}
+            >
+              Profile
+            </Button>
+            <Button
+              variant="outline"
+              className="border-none bg-primary text-xs text-primary-foreground shadow-md hover:bg-primary/90"
               onClick={handleLogout}
             >
               Logout
@@ -122,7 +135,7 @@ export default function EventsPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
               <div
-                key={`${event.title}-${event.date}`}
+                key={event.id}
                 className="rounded-lg border border-border bg-secondary/30 p-3 text-foreground"
               >
                 <EventCard {...event} />
@@ -130,7 +143,7 @@ export default function EventsPage() {
             ))}
           </div>
 
-        {/* Empty state */}
+          {/* Empty state */}
           {events.length === 0 && (
             <div className="mt-16 text-center text-muted-foreground">
               No events found. Try changing your search.
@@ -139,5 +152,5 @@ export default function EventsPage() {
         </section>
       </div>
     </div>
-  )
+  );
 }
