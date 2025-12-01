@@ -19,7 +19,6 @@ type Ticket = {
 
 type EventInfo = {
   id: string;
-  title?: string | null;
   name?: string | null;
 };
 
@@ -58,6 +57,8 @@ export default function ProfilePage() {
   const [ticketsError, setTicketsError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // event name lookup map: event_id -> EventInfo
   const [eventsMap, setEventsMap] = useState<Record<string, EventInfo>>({});
 
   // ---- Load user + avatar + tickets ----
@@ -68,6 +69,7 @@ export default function ProfilePage() {
       setProfileError(null);
       setTicketsError(null);
 
+      // 1) Get current user
       const {
         data: { user },
         error: userError,
@@ -83,11 +85,12 @@ export default function ProfilePage() {
       setUserId(user.id);
       setEmail(user.email ?? null);
       setDisplayName(deriveDisplayName(user.email));
+
       const metaAvatar =
         (user.user_metadata as any)?.avatar_url ?? null;
       setAvatarUrl(metaAvatar);
 
-      // ---- load tickets where seller_id = user.id ----
+      // 2) Load tickets where current user is the seller
       const { data: ticketData, error: ticketsErr } = await supabase
         .from("tickets")
         .select(
@@ -99,11 +102,12 @@ export default function ProfilePage() {
       if (ticketsErr) {
         console.error(ticketsErr);
         setTicketsError("Failed to load your tickets.");
+        setTickets([]);
       } else if (ticketData) {
         const ticketsTyped = ticketData as Ticket[];
         setTickets(ticketsTyped);
 
-        // fetch event titles for those event_ids
+        // 3) For those tickets, fetch the matching events to get event names
         const uniqueEventIds = Array.from(
           new Set(
             ticketsTyped
@@ -115,7 +119,7 @@ export default function ProfilePage() {
         if (uniqueEventIds.length > 0) {
           const { data: eventsData, error: eventsErr } = await supabase
             .from("events")
-            .select("id, title, name")
+            .select("id, name")
             .in("id", uniqueEventIds);
 
           if (!eventsErr && eventsData) {
@@ -153,7 +157,7 @@ export default function ProfilePage() {
       const filePath = `${userId}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("avatars") // bucket name – adjust if different
+        .from("avatars") // bucket name
         .upload(filePath, file, {
           upsert: true,
         });
@@ -399,9 +403,7 @@ export default function ProfilePage() {
             {tickets.map((ticket) => {
               const eventInfo = eventsMap[ticket.event_id];
               const eventLabel =
-                eventInfo?.title ||
-                eventInfo?.name ||
-                `Event ${ticket.event_id.slice(0, 8)}…`;
+                eventInfo?.name ?? "Unknown Event";
 
               const effectiveStatus =
                 ticket.status ?? "available";
