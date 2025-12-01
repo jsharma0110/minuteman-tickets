@@ -1,81 +1,82 @@
-'use client'
+"use client";
 
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import SearchBar from "../../components/SearchBar.jsx"
-import ToggleButtons from "../../components/ToggleButtons.jsx"
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import SearchBar from "../../components/SearchBar.jsx";
+import ToggleButtons from "../../components/ToggleButtons.jsx";
 import EventCard from "../../components/EventCard";
-import { getEvents } from "../api/getEvents"
-import { useEffect, useState } from "react"
+import { getEvents } from "../api/getEvents";
+import { useEffect, useState } from "react";
 
 // 1) Strong type for your page data
 type EventItem = {
-  id: string
-  title: string
-  location: string
-  date: string
-  imageUrl: string
-}
+  title: string;
+  location: string;
+  date: string;
+  imageUrl: string;
+  id: string;
+};
 
 export default function EventsPage() {
   // 2) Tell TS this is an array of EventItem
-  const [events, setEvents] = useState<EventItem[]>([])
-  const router = useRouter()
-  const supabase = createClient()
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         // If getEvents is JS/unknown, treat as any[]
-        const fetched: any[] | null = await getEvents().catch(() => null)
+        const fetched: any[] | null = await getEvents().catch(() => null);
 
         const mapped: EventItem[] =
-  Array.isArray(fetched) && fetched.length
-    ? fetched.map((e: any): EventItem => ({
-        id: e.id,  // ⬅️ ADD THIS
-        title: e?.title ?? e?.name ?? "Untitled Event",
-        location: e?.location ?? "",
-        date: e?.date ?? "",
-        imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
-      }))
-    : [
-        {
-          id: "1",   // ⬅️ required for the fallback dummy events
-          title: "UMass vs UConn Basketball Game",
-          location: "Mullins Center",
-          date: "Feb 15, 2026",
-          imageUrl: "/images/Mullins_Center_2014.jpeg",
-        },
-        {
-          id: "2",
-          title: "A Boogie Wit Da Hoodie",
-          location: "Mullins Center",
-          date: "Nov 15, 2025",
-          imageUrl: "/images/aboogie.png",
-        },
-      ]
+          Array.isArray(fetched) && fetched.length
+            ? fetched.map(
+                (e: any): EventItem => ({
+                  title: e?.title ?? e?.name ?? "Untitled Event",
+                  location: e?.location ?? "",
+                  date: e?.date ?? "",
+                  imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
+                  id: e?.id ?? "",
+                })
+              )
+            : [
+                {
+                  title: "UMass vs UConn Basketball Game",
+                  location: "Mullins Center",
+                  date: "Feb 15, 2026",
+                  imageUrl: "/images/Mullins_Center_2014.jpeg",
+                  id: "1",
+                },
+                {
+                  title: "A Boogie Wit Da Hoodie",
+                  location: "Mullins Center",
+                  date: "Nov 15, 2025",
+                  imageUrl: "/images/aboogie.png",
+                  id: "2",
+                },
+              ];
 
-
-        setEvents(mapped)
+        setEvents(mapped);
       } catch (error) {
-        console.error("Failed to fetch events:", error)
-        setEvents([])
+        console.error("Failed to fetch events:", error);
+        setEvents([]);
       }
-    }
+    };
 
-    fetchEvents()
-  }, [])
+    fetchEvents();
+  }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/auth/login")
-  }
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  };
 
   const goToProfile = () => {
-    router.push("/users")
-  }
+    router.push("/users");
+  };
 
   return (
     <div className="flex min-h-screen w-full items-start justify-center bg-background py-10 px-4">
@@ -151,5 +152,5 @@ export default function EventsPage() {
         </section>
       </div>
     </div>
-  )
+  );
 }

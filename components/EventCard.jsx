@@ -3,26 +3,12 @@
 import Image from "next/image";
 import BuySellFilter from "./BuySellFilter";
 
-type EventCardProps = {
-  id: string;
-  title: string;
-  date: string;
-  location: string;
-  imageUrl: string;
-};
-
-export default function EventCard({
-  id,
-  title,
-  date,
-  location,
-  imageUrl,
-}: EventCardProps) {
+export default function EventCard({ title, date, location, imageUrl, id }) {
+  const event = { title, date, location, imageUrl, id };
   return (
     <div className="mb-8">
-      <BuySellFilter eventId={id} />
-
-      <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md">
+      <BuySellFilter umassEvent={event} />
+      <div className="rounded-lg overflow-hidden shadow-md border border-gray-200">
         <Image
           src={imageUrl}
           alt={title}
