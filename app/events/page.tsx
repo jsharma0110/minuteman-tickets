@@ -6,12 +6,13 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import SearchBar from "../../components/SearchBar.jsx"
 import ToggleButtons from "../../components/ToggleButtons.jsx"
-import EventCard from "../../components/EventCard.jsx"
+import EventCard from "../../components/EventCard";
 import { getEvents } from "../api/getEvents"
 import { useEffect, useState } from "react"
 
 // 1) Strong type for your page data
 type EventItem = {
+  id: string
   title: string
   location: string
   date: string
@@ -31,27 +32,31 @@ export default function EventsPage() {
         const fetched: any[] | null = await getEvents().catch(() => null)
 
         const mapped: EventItem[] =
-          Array.isArray(fetched) && fetched.length
-            ? fetched.map((e: any): EventItem => ({
-                title: e?.title ?? e?.name ?? "Untitled Event",
-                location: e?.location ?? "",
-                date: e?.date ?? "",
-                imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
-              }))
-            : [
-                {
-                  title: "UMass vs UConn Basketball Game",
-                  location: "Mullins Center",
-                  date: "Feb 15, 2026",
-                  imageUrl: "/images/Mullins_Center_2014.jpeg",
-                },
-                {
-                  title: "A Boogie Wit Da Hoodie",
-                  location: "Mullins Center",
-                  date: "Nov 15, 2025",
-                  imageUrl: "/images/aboogie.png",
-                },
-              ]
+  Array.isArray(fetched) && fetched.length
+    ? fetched.map((e: any): EventItem => ({
+        id: e.id,  // ⬅️ ADD THIS
+        title: e?.title ?? e?.name ?? "Untitled Event",
+        location: e?.location ?? "",
+        date: e?.date ?? "",
+        imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
+      }))
+    : [
+        {
+          id: "1",   // ⬅️ required for the fallback dummy events
+          title: "UMass vs UConn Basketball Game",
+          location: "Mullins Center",
+          date: "Feb 15, 2026",
+          imageUrl: "/images/Mullins_Center_2014.jpeg",
+        },
+        {
+          id: "2",
+          title: "A Boogie Wit Da Hoodie",
+          location: "Mullins Center",
+          date: "Nov 15, 2025",
+          imageUrl: "/images/aboogie.png",
+        },
+      ]
+
 
         setEvents(mapped)
       } catch (error) {
@@ -129,7 +134,7 @@ export default function EventsPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
               <div
-                key={`${event.title}-${event.date}`}
+                key={event.id}
                 className="rounded-lg border border-border bg-secondary/30 p-3 text-foreground"
               >
                 <EventCard {...event} />
