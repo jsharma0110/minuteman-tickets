@@ -13,14 +13,20 @@ type Ticket = {
   section: string | null;
   row: string | null;
   seat: string | null;
-  status: string;
+  status: string | null;
+  seller_id: string;
 };
 
 export default async function BuyTicketsPage({ params }: PageProps) {
-  // ✅ params is a Promise now
   const { eventId } = await params;
 
   const supabase = await createClient();
+
+  // Get current user (may be null if somehow not logged in)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const currentUserId = user?.id ?? null;
 
   // 1) Load event
   const { data: event } = await supabase
@@ -29,58 +35,137 @@ export default async function BuyTicketsPage({ params }: PageProps) {
     .eq("id", eventId)
     .single();
 
-  // 2) Load tickets for this event
-  const { data: tickets } = await supabase
-    .from("tickets")
-    .select("id, price, section, row, seat, status")
-    .eq("event_id", eventId)
-    .eq("status", "available")
-    .order("price", { ascending: true });
-
   const eventTitle =
     (event as any)?.title || (event as any)?.name || "Event";
 
+  // 2) Tickets from OTHER users, status = 'available'
+  let availableQuery = supabase
+    .from("tickets")
+    .select("id, price, section, row, seat, status, seller_id")
+    .eq("event_id", eventId)
+    .eq("status", "available");
+
+  if (currentUserId) {
+    availableQuery = availableQuery.neq("seller_id", currentUserId);
+  }
+
+  const { data: availableTickets } = await availableQuery.order("price", {
+    ascending: true,
+  });
+
+  // 3) Tickets listed by the current user for this event (any status)
+  let myTickets: Ticket[] = [];
+  if (currentUserId) {
+    const { data: myTicketsData } = await supabase
+      .from("tickets")
+      .select("id, price, section, row, seat, status, seller_id")
+      .eq("event_id", eventId)
+      .eq("seller_id", currentUserId)
+      .order("created_at", { ascending: false });
+
+    myTickets = (myTicketsData as Ticket[]) || [];
+  }
+
+  const otherTickets = (availableTickets as Ticket[]) || [];
+
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">
           Buy tickets – {eventTitle}
         </h1>
         <p className="text-sm text-muted-foreground">
-          All tickets currently listed for this event.
+          Tickets listed by other students are shown below.
         </p>
       </header>
 
-      {!tickets || tickets.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No tickets are currently listed for this event.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {(tickets as Ticket[]).map((ticket) => (
-            <div
-              key={ticket.id}
-              className="flex items-center justify-between rounded-xl border bg-secondary/30 p-4"
-            >
-              <div>
-                <p className="font-medium">${ticket.price}</p>
-                <p className="text-xs text-muted-foreground">
-                  {ticket.section && `Section ${ticket.section} `}
-                  {ticket.row && `Row ${ticket.row} `}
-                  {ticket.seat && `Seat ${ticket.seat}`}
-                </p>
-              </div>
+      {/* Tickets from other users */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">
+        
+        </h2>
 
-              {/* Buy action will be wired later */}
-              <button
-                className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-accent"
-                disabled
+        {otherTickets.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No tickets from other students are currently available for
+            this event.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {otherTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="flex items-center justify-between rounded-xl border bg-secondary/30 p-4"
               >
-                Buy (coming soon)
-              </button>
+                <div>
+                  <p className="font-medium">${ticket.price}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ticket.section && `Section ${ticket.section} `}
+                    {ticket.row && `· Row ${ticket.row} `}
+                    {ticket.seat && `· Seat ${ticket.seat}`}
+                  </p>
+                </div>
+
+                {/* Buy action will be wired later */}
+                <button
+                  className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-accent"
+                  disabled
+                >
+                  Buy (coming soon)
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Your own listings for this event */}
+      {currentUserId && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">
+            Your listings for this event
+          </h2>
+          <p className="text-xs text-muted-foreground">
+         
+          </p>
+
+          {myTickets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              You haven&apos;t listed any tickets for this event yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {myTickets.map((ticket) => {
+                const effectiveStatus =
+                  ticket.status ?? "available";
+
+                return (
+                  <div
+                    key={ticket.id}
+                    className="flex items-center justify-between rounded-xl border bg-muted/30 p-3 text-xs"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">
+                        ${ticket.price} ·{" "}
+                        <span className="capitalize">
+                          {effectiveStatus}
+                        </span>
+                      </p>
+                      <p className="text-muted-foreground">
+                        {ticket.section && `Section ${ticket.section} `}
+                        {ticket.row && `· Row ${ticket.row} `}
+                        {ticket.seat && `· Seat ${ticket.seat}`}
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Edit in Profile →
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          )}
+        </section>
       )}
 
       <Link href="/events" className="text-sm underline">
