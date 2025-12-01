@@ -10,52 +10,49 @@ import EventCard from "../../components/EventCard";
 import { getEvents } from "../api/getEvents";
 import { useEffect, useState } from "react";
 
-// 1) Strong type for your page data
+// Strong type for your page data
 type EventItem = {
+  id: string;
   title: string;
   location: string;
   date: string;
   imageUrl: string;
-  id: string;
 };
 
 export default function EventsPage() {
-  // 2) Tell TS this is an array of EventItem
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");      // 🔍 NEW
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // If getEvents is JS/unknown, treat as any[]
         const fetched: any[] | null = await getEvents().catch(() => null);
 
         const mapped: EventItem[] =
           Array.isArray(fetched) && fetched.length
-            ? fetched.map(
-                (e: any): EventItem => ({
-                  title: e?.title ?? e?.name ?? "Untitled Event",
-                  location: e?.location ?? "",
-                  date: e?.date ?? "",
-                  imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
-                  id: e?.id ?? "",
-                })
-              )
+            ? fetched.map((e: any): EventItem => ({
+                id: e.id,
+                title: e?.title ?? e?.name ?? "Untitled Event",
+                location: e?.location ?? "",
+                date: e?.date ?? "",
+                imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
+              }))
             : [
                 {
+                  id: "1",
                   title: "UMass vs UConn Basketball Game",
                   location: "Mullins Center",
                   date: "Feb 15, 2026",
                   imageUrl: "/images/Mullins_Center_2014.jpeg",
-                  id: "1",
                 },
                 {
+                  id: "2",
                   title: "A Boogie Wit Da Hoodie",
                   location: "Mullins Center",
                   date: "Nov 15, 2025",
                   imageUrl: "/images/aboogie.png",
-                  id: "2",
                 },
               ];
 
@@ -77,6 +74,22 @@ export default function EventsPage() {
   const goToProfile = () => {
     router.push("/users");
   };
+
+  // 🔍 Filter events based on search term (title, location, or date)
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredEvents =
+    normalizedSearch.length === 0
+      ? events
+      : events.filter((event) => {
+          const title = event.title.toLowerCase();
+          const location = event.location.toLowerCase();
+          const date = event.date.toLowerCase();
+          return (
+            title.includes(normalizedSearch) ||
+            location.includes(normalizedSearch) ||
+            date.includes(normalizedSearch)
+          );
+        });
 
   return (
     <div className="flex min-h-screen w-full items-start justify-center bg-background py-10 px-4">
@@ -122,7 +135,11 @@ export default function EventsPage() {
 
         {/* Search */}
         <div className="mx-auto mt-6 w-full max-w-md px-6">
-          <SearchBar />
+          <SearchBar
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search by event, location, or date..."
+          />
         </div>
 
         {/* Optional toggles */}
@@ -133,7 +150,7 @@ export default function EventsPage() {
         {/* Events */}
         <section className="px-6 pb-10 pt-8">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
+            {filteredEvents.map((event) => (
               <div
                 key={event.id}
                 className="rounded-lg border border-border bg-secondary/30 p-3 text-foreground"
@@ -144,9 +161,9 @@ export default function EventsPage() {
           </div>
 
           {/* Empty state */}
-          {events.length === 0 && (
+          {filteredEvents.length === 0 && (
             <div className="mt-16 text-center text-muted-foreground">
-              No events found. Try changing your search.
+              No events found. Try a different search.
             </div>
           )}
         </section>

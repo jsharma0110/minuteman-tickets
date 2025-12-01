@@ -1,12 +1,27 @@
 "use client";
 
-export default function SearchBar() {
+import { useCallback } from "react";
+
+export default function SearchBar({
+  value,
+  onChange,
+  placeholder = "Search events...",
+}) {
+  const handleChange = useCallback(
+    (e) => {
+      onChange?.(e.target.value);
+    },
+    [onChange]
+  );
+
   return (
-    <div className="my-4">
+    <div className="w-full">
       <input
         type="text"
-        placeholder="Search"
-        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className="w-full rounded-full border border-border bg-background px-4 py-2 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
       />
     </div>
   );
