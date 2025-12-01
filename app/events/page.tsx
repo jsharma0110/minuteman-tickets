@@ -16,6 +16,7 @@ type EventItem = {
   location: string
   date: string
   imageUrl: string
+  id: string
 }
 
 export default function EventsPage() {
@@ -37,6 +38,7 @@ export default function EventsPage() {
                 location: e?.location ?? "",
                 date: e?.date ?? "",
                 imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
+                id: e?.id ?? ""
               }))
             : [
                 {
@@ -44,12 +46,14 @@ export default function EventsPage() {
                   location: "Mullins Center",
                   date: "Feb 15, 2026",
                   imageUrl: "/images/Mullins_Center_2014.jpeg",
+                  id: "1"
                 },
                 {
                   title: "A Boogie Wit Da Hoodie",
                   location: "Mullins Center",
                   date: "Nov 15, 2025",
                   imageUrl: "/images/aboogie.png",
+                  id: "2"
                 },
               ]
 
