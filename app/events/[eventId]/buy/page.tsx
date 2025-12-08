@@ -69,7 +69,7 @@ export default async function BuyTicketsPage({ params }: PageProps) {
   const otherTickets = (availableTickets as Ticket[]) || [];
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8 px-6 py-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">
           Buy tickets – {eventTitle}
@@ -81,9 +81,7 @@ export default async function BuyTicketsPage({ params }: PageProps) {
 
       {/* Tickets from other users */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">
-        
-        </h2>
+        <h2 className="text-lg font-semibold"></h2>
 
         {otherTickets.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -106,13 +104,12 @@ export default async function BuyTicketsPage({ params }: PageProps) {
                   </p>
                 </div>
 
-                {/* Buy action will be wired later */}
-                <button
+                <Link
+                  href={`/conversations/start?ticketId=${ticket.id}&sellerId=${ticket.seller_id}`}
                   className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-accent"
-                  disabled
                 >
-                  Buy (coming soon)
-                </button>
+                  Chat with seller
+                </Link>
               </div>
             ))}
           </div>
@@ -125,9 +122,7 @@ export default async function BuyTicketsPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold">
             Your listings for this event
           </h2>
-          <p className="text-xs text-muted-foreground">
-         
-          </p>
+          <p className="text-xs text-muted-foreground"></p>
 
           {myTickets.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -136,8 +131,7 @@ export default async function BuyTicketsPage({ params }: PageProps) {
           ) : (
             <div className="space-y-2">
               {myTickets.map((ticket) => {
-                const effectiveStatus =
-                  ticket.status ?? "available";
+                const effectiveStatus = ticket.status ?? "available";
 
                 return (
                   <div
@@ -145,7 +139,7 @@ export default async function BuyTicketsPage({ params }: PageProps) {
                     className="flex items-center justify-between rounded-xl border bg-muted/30 p-3 text-xs"
                   >
                     <div>
-                      <p className="font-medium text-sm">
+                      <p className="text-sm font-medium">
                         ${ticket.price} ·{" "}
                         <span className="capitalize">
                           {effectiveStatus}
@@ -157,9 +151,12 @@ export default async function BuyTicketsPage({ params }: PageProps) {
                         {ticket.seat && `· Seat ${ticket.seat}`}
                       </p>
                     </div>
-                    <span className="text-[11px] text-muted-foreground">
+                    <Link
+                      href="/users"
+                      className="text-[11px] text-muted-foreground"
+                    >
                       Edit in Profile →
-                    </span>
+                    </Link>
                   </div>
                 );
               })}
