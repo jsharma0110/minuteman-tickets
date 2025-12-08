@@ -21,7 +21,7 @@ type EventItem = {
 
 export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");      // 🔍 NEW
+  const [searchTerm, setSearchTerm] = useState(""); // 🔍 search state
   const router = useRouter();
   const supabase = createClient();
 
@@ -75,6 +75,10 @@ export default function EventsPage() {
     router.push("/users");
   };
 
+  const goToChats = () => {
+    router.push("/conversations");
+  };
+
   // 🔍 Filter events based on search term (title, location, or date)
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredEvents =
@@ -123,6 +127,15 @@ export default function EventsPage() {
             >
               Profile
             </Button>
+
+            <Button
+              variant="outline"
+              className="border-none bg-secondary text-xs text-foreground shadow-md hover:bg-secondary/80"
+              onClick={goToChats}
+            >
+              Chats
+            </Button>
+
             <Button
               variant="outline"
               className="border-none bg-primary text-xs text-primary-foreground shadow-md hover:bg-primary/90"

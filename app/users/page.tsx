@@ -174,7 +174,7 @@ export default function ProfilePage() {
         .from("avatars")
         .getPublicUrl(filePath);
 
-      const { error: updateError } = await supabase.auth.updateUser({
+            const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl },
       });
 
@@ -183,7 +183,17 @@ export default function ProfilePage() {
         setProfileError("Failed to save profile picture.");
       } else {
         setAvatarUrl(publicUrl);
+
+        const { error: profileErr } = await supabase
+          .from("profiles")
+          .update({ avatar_url: publicUrl })
+          .eq("id", userId);
+
+        if (profileErr) {
+          console.error("Failed to update profiles.avatar_url", profileErr);
+        }
       }
+
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) {
@@ -198,7 +208,7 @@ export default function ProfilePage() {
       setDeletingAvatar(true);
       setProfileError(null);
 
-      const { error } = await supabase.auth.updateUser({
+            const { error } = await supabase.auth.updateUser({
         data: { avatar_url: null },
       });
 
@@ -207,7 +217,17 @@ export default function ProfilePage() {
         setProfileError("Failed to delete profile picture.");
       } else {
         setAvatarUrl(null);
+
+        const { error: profileErr } = await supabase
+          .from("profiles")
+          .update({ avatar_url: null })
+          .eq("id", userId);
+
+        if (profileErr) {
+          console.error("Failed to clear profiles.avatar_url", profileErr);
+        }
       }
+
     } finally {
       setDeletingAvatar(false);
     }
@@ -274,6 +294,7 @@ export default function ProfilePage() {
     await handleSave({ ...ticket, status: newStatus });
   };
 
+  // ✅ UPDATED: delete ticket + its conversations + messages
   const handleDeleteTicket = async (ticketId: string) => {
     if (!userId) return;
     const confirmed = window.confirm("Delete this ticket listing?");
@@ -282,14 +303,58 @@ export default function ProfilePage() {
     setDeletingId(ticketId);
     setTicketsError(null);
 
-    const { error } = await supabase
+    // 1) Find conversations for this ticket
+    const { data: convs, error: convErr } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("ticket_id", ticketId);
+
+    if (convErr) {
+      console.error(convErr);
+      setTicketsError("Could not delete conversations for this ticket.");
+      setDeletingId(null);
+      return;
+    }
+
+    const convIds = (convs ?? []).map((c: any) => c.id as string);
+
+    // 2) Delete messages for those conversations
+    if (convIds.length > 0) {
+      const { error: msgErr } = await supabase
+        .from("messages")
+        .delete()
+        .in("conversation_id", convIds);
+
+      if (msgErr) {
+        console.error(msgErr);
+        setTicketsError("Could not delete messages for this ticket.");
+        setDeletingId(null);
+        return;
+      }
+
+      // 3) Delete the conversations themselves
+      const { error: convDelErr } = await supabase
+        .from("conversations")
+        .delete()
+        .in("id", convIds);
+
+      if (convDelErr) {
+        console.error(convDelErr);
+        setTicketsError("Could not delete conversations for this ticket.");
+        setDeletingId(null);
+        return;
+      }
+    }
+
+    // 4) Finally delete the ticket
+    const { error: ticketErr } = await supabase
       .from("tickets")
       .delete()
       .eq("id", ticketId)
       .eq("seller_id", userId);
 
-    if (error) {
-      console.error(error);
+    if (ticketErr) {
+      console.error(ticketErr);
       setTicketsError("Could not delete ticket.");
     } else {
       setTickets((prev) => prev.filter((t) => t.id !== ticketId));
