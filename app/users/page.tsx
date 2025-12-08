@@ -294,7 +294,7 @@ export default function ProfilePage() {
     await handleSave({ ...ticket, status: newStatus });
   };
 
-  // ✅ UPDATED: delete ticket + its conversations + messages
+  // delete ticket + its conversations + messages
   const handleDeleteTicket = async (ticketId: string) => {
     if (!userId) return;
     const confirmed = window.confirm("Delete this ticket listing?");
