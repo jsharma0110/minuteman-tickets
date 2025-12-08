@@ -37,6 +37,7 @@ export default function EventsPage() {
                 title: e?.title ?? e?.name ?? "Untitled Event",
                 location: e?.location ?? "",
                 date: e?.date ?? "",
+                // Use imageUrl from getEvents (Supabase storage URL) or fallback to local image
                 imageUrl: e?.imageUrl ?? "/images/Mullins_Center_2014.jpeg",
               }))
             : [
