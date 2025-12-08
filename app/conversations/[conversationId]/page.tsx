@@ -76,7 +76,7 @@ function deriveDisplayName(email: string | null | undefined): string {
 }
 
 export default async function ConversationPage({ params }: PageProps) {
-  // ✅ Next 16 async params
+  // Next 16 async params
   const { conversationId } = await params;
 
   const supabase = await createClient();
