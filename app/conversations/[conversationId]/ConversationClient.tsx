@@ -135,7 +135,7 @@ export default function ConversationClient({
       attachment_size = file.size;
     }
 
-    // ✅ Never send `null` for content; use "" for file-only messages
+    // Never send `null` for content; use "" for file-only messages
     const trimmed = content.trim();
     const finalContent = trimmed || (file ? "" : null);
 
