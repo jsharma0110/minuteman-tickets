@@ -1,256 +1,212 @@
 "use client";
 
-import React, { useState } from "react";
-import { MessageCircle, ChevronLeft, X } from "lucide-react";
-import Image from "next/image";
-import { postTickets } from "../app/api/postTickets";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
-type EventItem = {
-  id: string;
-  title: string;
-  location: string;
-  date: string;
-  imageUrl: string;
-};
-
-type TicketListingModalProps = {
-  event: EventItem;
+interface TicketListingModalProps {
+  event: {
+    id: string;
+    title?: string;
+    location?: string;
+    date?: string;
+  };
   isOpen: boolean;
   onClose: () => void;
-};
+}
 
 export default function TicketListingModal({
   event,
   isOpen,
   onClose,
 }: TicketListingModalProps) {
+  const router = useRouter();
+  const supabase = createClient();
+
   const [section, setSection] = useState("");
   const [row, setRow] = useState("");
   const [seat, setSeat] = useState("");
   const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [notes, setNotes] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  if (!isOpen) return null;
+  // Make sure we only portal on the client (avoids hydration issues)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const handleSubmit = async () => {
-    // Validate required fields (row is optional based on schema)
-    if (!section || !seat || !price || !event.id) {
-      alert("Please fill in all required fields: Section, Seat, and Price");
+  if (!isOpen || !mounted) return null;
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    const numericPrice = Number(price);
+    if (Number.isNaN(numericPrice) || numericPrice <= 0) {
+      setErrorMsg("Please enter a valid ticket price.");
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-
     try {
-      const ticketData = {
+      setLoading(true);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setErrorMsg("You must be logged in to list a ticket.");
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.from("tickets").insert({
         event_id: event.id,
-        section,
+        seller_id: user.id,
+        price: numericPrice,
+        section: section || null,
         row: row || null,
-        seat,
-        price: parseFloat(price),
-        quantity: parseInt(quantity) || 1,
-      };
+        seat: seat || null,
+        status: "available",
+      });
 
-      const result = await postTickets(ticketData);
-
-      // Success - show confirmation and close modal
-      alert(`Successfully listed ${result.length} ticket(s)!`);
-
-      // Reset form
-      setSection("");
-      setRow("");
-      setSeat("");
-      setPrice("");
-      setQuantity("1");
-      setNotes("");
-
-      // Close modal
-      onClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to list ticket. Please try again.");
-      alert(err.message || "Failed to list ticket. Please try again.");
+      if (error) {
+        console.error(error);
+        setErrorMsg("Something went wrong while listing your ticket.");
+      } else {
+        router.refresh();
+        onClose();
+        setSection("");
+        setRow("");
+        setSeat("");
+        setPrice("");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Unexpected error. Please try again.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-gray-50 rounded-lg shadow-xl overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onClose}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                <ChevronLeft size={24} />
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">
-                List Your Ticket
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
-              <button className="text-gray-600 hover:text-gray-900">
-                <MessageCircle size={24} />
-              </button>
-              <button
-                onClick={onClose}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                <X size={24} />
-              </button>
-            </div>
-          </div>
+  // ------- PORTAL CONTENT (centered modal) -------
+  const modalContent = (
+   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900/95 p-8 shadow-2xl">
+    
+    {/* Header */}
+    <div className="mb-6 flex items-start justify-between">
+      <div>
+        <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">
+          List Ticket
+        </p>
+
+        <h2 className="mt-1 text-2xl font-semibold text-zinc-50 leading-tight">
+          {event.title || "Event"}
+        </h2>
+
+        {event.location && (
+          <p className="text-sm text-zinc-300">{event.location}</p>
+        )}
+        {event.date && (
+          <p className="text-sm text-zinc-400">{event.date}</p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-full px-2 py-1 text-base text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+      >
+        ✕
+      </button>
+    </div>
+
+    {/* FORM */}
+    <form onSubmit={handleSubmit} className="space-y-6 text-base">
+      
+      {/* Section / Row / Seat */}
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="mb-1 block text-sm text-zinc-400">Section</label>
+          <input
+            type="text"
+            value={section}
+            onChange={(e) => setSection(e.target.value)}
+            placeholder="A"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-400 focus:outline-none"
+          />
         </div>
 
-        <div className="px-4 py-6">
-          {/* Event Info Card */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-            <Image
-              src={event.imageUrl}
-              alt={event.title}
-              width={800}
-              height={200}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-4">
-              <h2 className="text-xl font-bold text-gray-900 mb-1">
-                {event.title} @ {event.location}
-              </h2>
-              <p className="text-gray-500">{event.date}</p>
-            </div>
-          </div>
+        <div>
+          <label className="mb-1 block text-sm text-zinc-400">Row</label>
+          <input
+            type="number"
+            value={row}
+            onChange={(e) => setRow(e.target.value)}
+            placeholder="1"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-400 focus:outline-none"
+          />
+        </div>
 
-          {/* Listing Form */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Ticket Details
-            </h3>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Section
-                  </label>
-                  <input
-                    type="text"
-                    value={section}
-                    onChange={(e) => setSection(e.target.value)}
-                    placeholder="e.g., 101"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Row
-                  </label>
-                  <input
-                    type="text"
-                    value={row}
-                    onChange={(e) => setRow(e.target.value)}
-                    placeholder="e.g., A"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Seat
-                  </label>
-                  <input
-                    type="text"
-                    value={seat}
-                    onChange={(e) => setSeat(e.target.value)}
-                    placeholder="e.g., 12"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder:text-gray-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price per Ticket ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder:text-gray-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    min="1"
-                    max="10"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder:text-gray-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Additional Notes (Optional)
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any special conditions or details about the tickets..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-gray-900 placeholder:text-gray-500"
-                />
-              </div>
-
-              {/* Pricing Summary */}
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <button
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {isLoading ? "Listing Ticket..." : "List Ticket for Sale"}
-              </button>
-            </div>
-          </div>
-
-          {/* Info Box */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-900 mb-2">
-              Listing Guidelines
-            </h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Tickets are immediately visible to buyers</li>
-              <li>• Youll be notified when someone purchases your ticket</li>
-              <li>• Transfer tickets electronically through the platform</li>
-              <li>• Payment is released after successful transfer</li>
-            </ul>
-          </div>
+        <div>
+          <label className="mb-1 block text-sm text-zinc-400">Seat</label>
+          <input
+            type="number"
+            value={seat}
+            onChange={(e) => setSeat(e.target.value)}
+            placeholder="12"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-400 focus:outline-none"
+          />
         </div>
       </div>
-    </div>
+
+      {/* PRICE */}
+      <div>
+        <label className="mb-1 block text-sm text-zinc-400">
+          Price per ticket ($)
+        </label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          placeholder="35"
+          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-base text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-400 focus:outline-none"
+        />
+      </div>
+
+      {/* ERROR */}
+      {errorMsg && (
+        <p className="text-sm text-red-400">{errorMsg}</p>
+      )}
+
+      {/* BUTTONS */}
+      <div className="mt-2 flex items-center justify-end gap-4 text-base">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full px-4 py-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          disabled={loading}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-full bg-zinc-100 px-5 py-1.5 text-base font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-200 disabled:opacity-60"
+        >
+          {loading ? "Listing…" : "List ticket"}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
   );
+
+  return createPortal(modalContent, document.body);
 }
