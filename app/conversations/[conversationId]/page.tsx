@@ -76,9 +76,7 @@ function deriveDisplayName(email: string | null | undefined): string {
 }
 
 export default async function ConversationPage({ params }: PageProps) {
-  // Next 16 async params
   const { conversationId } = await params;
-
   const supabase = await createClient();
 
   const {
@@ -89,7 +87,7 @@ export default async function ConversationPage({ params }: PageProps) {
     redirect("/auth/login");
   }
 
-  // 1) Load conversation and ensure user is buyer or seller
+  // 1) Conversation
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
     .select("id, ticket_id, buyer_id, seller_id, created_at")
@@ -108,7 +106,7 @@ export default async function ConversationPage({ params }: PageProps) {
   const isBuyer = conversation.buyer_id === user.id;
   const otherUserId = isBuyer ? conversation.seller_id : conversation.buyer_id;
 
-  // 2) Load ticket
+  // 2) Ticket
   const { data: ticket, error: ticketError } = await supabase
     .from("tickets")
     .select(
@@ -121,7 +119,7 @@ export default async function ConversationPage({ params }: PageProps) {
     console.error("Ticket fetch error:", ticketError);
   }
 
-  // 3) Load event (for name)
+  // 3) Event
   let eventName: string | null = null;
 
   if (ticket?.event_id) {
@@ -137,7 +135,7 @@ export default async function ConversationPage({ params }: PageProps) {
     eventName = event?.name ?? null;
   }
 
-  // 4) Load other user's profile
+  // 4) Other user's profile
   const { data: otherProfile, error: profileError } = await supabase
     .from("profiles")
     .select("id, avatar_url, display_name, email")
@@ -155,7 +153,7 @@ export default async function ConversationPage({ params }: PageProps) {
 
   const otherAvatarUrl = otherProfile?.avatar_url ?? null;
 
-  // 5) Load initial messages (including attachment fields)
+  // 5) Messages
   const { data: messages, error: msgError } = await supabase
     .from("messages")
     .select(
@@ -188,54 +186,90 @@ export default async function ConversationPage({ params }: PageProps) {
       : ticket?.id ?? "";
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-6">
-      {/* Header: other user's avatar + name + ticket details */}
-      <header className="flex flex-col gap-3 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-semibold">
-            {otherAvatarUrl ? (
-              <Image
-                src={otherAvatarUrl}
-                alt={otherDisplayName}
-                width={40}
-                height={40}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span>{otherDisplayName.charAt(0)}</span>
-            )}
+    <div className="min-h-screen w-full bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-foreground">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 pb-10 pt-6">
+        {/* Top row: page title + back */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col leading-tight">
+            <span className="text-[14px] font-semibold tracking-tight">
+              Conversation
+            </span>
+            <span className="text-[14px] text-zinc-500">
+              Chat with other UMass students about tickets
+            </span>
           </div>
-          <div className="space-y-0.5">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Chat with {isBuyer ? "Seller" : "Buyer"}
-            </p>
-            <p className="text-sm font-semibold">{otherDisplayName}</p>
-            <p className="text-xs text-muted-foreground">
-              {eventName ?? "Event"} — Ticket #{shortTicketId}
-            </p>
-            <p className="text-xs text-muted-foreground">{ticketSeatLabel}</p>
-            <p className="text-xs">
-              Price: {ticket ? `$${ticket.price.toFixed(2)}` : "Unknown"}
-            </p>
-            {ticketStatus === "sold" && (
-              <p className="text-xs font-semibold text-yellow-600">
-                Seller has marked this ticket as sold.
-              </p>
-            )}
+
+          <div className="flex items-center gap-2 text-xs">
+            <a
+              href="/conversations"
+              className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[14px] text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800"
+            >
+              ← All chats
+            </a>
+            <a
+              href="/events"
+              className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[14px] text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800"
+            >
+              Back to events
+            </a>
           </div>
         </div>
 
-        <a href="/conversations" className="text-xs underline">
-          ← All chats
-        </a>
-      </header>
+        {/* Ticket + other user info */}
+        <section className="flex flex-col gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.6)] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-zinc-800 text-sm font-semibold text-zinc-50">
+              {otherAvatarUrl ? (
+                <Image
+                  src={otherAvatarUrl}
+                  alt={otherDisplayName}
+                  width={48}
+                  height={48}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{otherDisplayName.charAt(0)}</span>
+              )}
+            </div>
 
-      {/* Conversation client: messages + input + uploads */}
-      <ConversationClient
-        conversationId={conversation.id}
-        userId={user.id}
-        initialMessages={initialMessages}
-      />
+            <div className="space-y-1 text-sm">
+              <p className="text-[12px] uppercase tracking-[0.16em] text-zinc-500">
+                {isBuyer ? "Chatting with seller" : "Chatting with buyer"}
+              </p>
+              <p className="text-base font-semibold text-zinc-50">
+                {otherDisplayName}
+              </p>
+              <p className="text-[14px] text-zinc-400">
+                {eventName ?? "Event"} • Ticket {shortTicketId && `#${shortTicketId}`}
+              </p>
+              <p className="text-[14px] text-zinc-400">{ticketSeatLabel}</p>
+              <p className="text-[14px] text-zinc-300">
+                Price:{" "}
+                {ticket ? `$${ticket.price.toFixed(2)}` : "Unknown"}
+              </p>
+              {ticketStatus === "sold" && (
+                <p className="text-[14px] font-semibold text-amber-400">
+                  Seller has marked this ticket as sold.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-2 text-[14px] text-zinc-500 sm:mt-0 sm:text-right">
+            <p>
+              Conversation started{" "}
+              {new Date(conversation.created_at).toLocaleString()}
+            </p>
+          </div>
+        </section>
+
+        {/* Chat card */}
+        <ConversationClient
+          conversationId={conversation.id}
+          userId={user.id}
+          initialMessages={initialMessages}
+        />
+      </div>
     </div>
   );
 }

@@ -64,10 +64,8 @@ export default function ConversationClient({
       }
     };
 
-    // initial poll (in case SSR data is stale)
     poll();
-
-    const id = setInterval(poll, 3000); // 3s
+    const id = setInterval(poll, 3000);
     return () => {
       isCancelled = true;
       clearInterval(id);
@@ -92,107 +90,104 @@ export default function ConversationClient({
   };
 
   const handleSend = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!content.trim() && !file) {
-    return;
-  }
-
-  setSending(true);
-  setError(null);
-
-  try {
-    let attachment_url: string | null = null;
-    let attachment_name: string | null = null;
-    let attachment_type: string | null = null;
-    let attachment_size: number | null = null;
-
-    // 1) If there is a file, upload to storage
-    if (file) {
-      const fileExt = file.name.split(".").pop() ?? "bin";
-      const filePath = `${conversationId}/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("conversation-uploads")
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        setError("Failed to upload attachment.");
-        return;
-      }
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage
-        .from("conversation-uploads")
-        .getPublicUrl(filePath);
-
-      attachment_url = publicUrl;
-      attachment_name = file.name;
-      attachment_type = file.type || "application/octet-stream";
-      attachment_size = file.size;
-    }
-
-    // Never send `null` for content; use "" for file-only messages
-    const trimmed = content.trim();
-    const finalContent = trimmed || (file ? "" : null);
-
-    const { data, error: insertError } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: conversationId,
-        sender_id: userId,
-        content: finalContent,
-        attachment_url,
-        attachment_name,
-        attachment_type,
-        attachment_size,
-      })
-      .select(
-        `
-        id,
-        content,
-        created_at,
-        sender_id,
-        attachment_url,
-        attachment_name,
-        attachment_type,
-        attachment_size
-      `
-      )
-      .single();
-
-    if (insertError) {
-      console.error("Insert error:", insertError);
-      setError(insertError.message ?? "Failed to send message.");
+    e.preventDefault();
+    if (!content.trim() && !file) {
       return;
     }
 
-    // 3) Update local state immediately
-    setMessages((prev) => [...prev, data as MessageRow]);
-    setContent("");
-    setFile(null);
+    setSending(true);
+    setError(null);
 
-    const fileInput = document.getElementById(
-      "chat-file-input"
-    ) as HTMLInputElement | null;
-    if (fileInput) fileInput.value = "";
-  } finally {
-    setSending(false);
-  }
-};
+    try {
+      let attachment_url: string | null = null;
+      let attachment_name: string | null = null;
+      let attachment_type: string | null = null;
+      let attachment_size: number | null = null;
 
+      if (file) {
+        const fileExt = file.name.split(".").pop() ?? "bin";
+        const filePath = `${conversationId}/${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("conversation-uploads")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          setError("Failed to upload attachment.");
+          return;
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage
+          .from("conversation-uploads")
+          .getPublicUrl(filePath);
+
+        attachment_url = publicUrl;
+        attachment_name = file.name;
+        attachment_type = file.type || "application/octet-stream";
+        attachment_size = file.size;
+      }
+
+      const trimmed = content.trim();
+      const finalContent = trimmed || (file ? "" : null);
+
+      const { data, error: insertError } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          sender_id: userId,
+          content: finalContent,
+          attachment_url,
+          attachment_name,
+          attachment_type,
+          attachment_size,
+        })
+        .select(
+          `
+          id,
+          content,
+          created_at,
+          sender_id,
+          attachment_url,
+          attachment_name,
+          attachment_type,
+          attachment_size
+        `
+        )
+        .single();
+
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        setError(insertError.message ?? "Failed to send message.");
+        return;
+      }
+
+      setMessages((prev) => [...prev, data as MessageRow]);
+      setContent("");
+      setFile(null);
+
+      const fileInput = document.getElementById(
+        "chat-file-input"
+      ) as HTMLInputElement | null;
+      if (fileInput) fileInput.value = "";
+    } finally {
+      setSending(false);
+    }
+  };
 
   const isImage = (msg: MessageRow) =>
     msg.attachment_type?.startsWith("image/") ?? false;
 
   return (
-    <div className="flex flex-1 flex-col rounded-lg border bg-card p-3">
-      <div className="flex-1 space-y-2 overflow-y-auto border-b pb-3 text-sm">
+    <div className="flex flex-1 flex-col rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.6)]">
+      {/* Messages */}
+      <div className="flex-1 space-y-3 overflow-y-auto border-b border-zinc-800 pb-3 text-sm">
         {messages.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[14px] text-zinc-500">
             No messages yet. Say hi to start the conversation.
           </p>
         ) : (
@@ -201,15 +196,13 @@ export default function ConversationClient({
             return (
               <div
                 key={msg.id}
-                className={`flex ${
-                  isMe ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[75%] rounded-xl px-3 py-2 text-xs ${
+                  className={`max-w-[75%] rounded-2xl px-3 py-2 text-xs sm:text-sm ${
                     isMe
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
+                      ? "bg-emerald-700 text-emerald-50"
+                      : "bg-zinc-800 text-zinc-50"
                   }`}
                 >
                   {msg.content && (
@@ -220,28 +213,26 @@ export default function ConversationClient({
 
                   {msg.attachment_url && (
                     <div className="mt-2 space-y-1">
-                      {isImage(msg) ? (
+                      {isImage(msg) && (
                         <img
                           src={msg.attachment_url}
                           alt={msg.attachment_name ?? "Attachment"}
-                          className="max-h-64 rounded-md border bg-background object-contain"
+                          className="max-h-64 rounded-lg border border-zinc-700 bg-black object-contain"
                         />
-                      ) : null}
+                      )}
 
                       <a
                         href={msg.attachment_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] underline"
+                        className="inline-flex items-center gap-1 text-[14px] underline"
                       >
-                        📎{" "}
-                        {msg.attachment_name ??
-                          "Download attachment"}
+                        📎 {msg.attachment_name ?? "Download attachment"}
                       </a>
                     </div>
                   )}
 
-                  <p className="mt-1 text-[10px] opacity-70">
+                  <p className="mt-1 text-[13px] opacity-70">
                     {new Date(msg.created_at).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -261,22 +252,22 @@ export default function ConversationClient({
         <p className="pt-2 text-[11px] text-red-500">{error}</p>
       )}
 
-      {/* Input + file upload */}
+      {/* Input */}
       <form
         onSubmit={handleSend}
         className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end"
       >
         <div className="flex-1 space-y-2">
           <textarea
-            className="h-16 w-full resize-none rounded-md border bg-background px-2 py-1 text-sm"
+            className="h-20 w-full resize-none rounded-xl border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
             placeholder="Type your message..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
 
           <div className="flex items-center justify-between gap-2">
-            <label className="flex cursor-pointer items-center gap-2 text-[11px] text-muted-foreground">
-              <span className="inline-flex h-6 items-center rounded border px-2 text-[11px]">
+            <label className="flex cursor-pointer items-center gap-2 text-[14px] text-zinc-400">
+              <span className="inline-flex h-7 items-center rounded-full border border-zinc-700 bg-zinc-900 px-3 text-[14px] hover:border-zinc-500 hover:bg-zinc-800">
                 + Add file
               </span>
               <input
@@ -286,19 +277,19 @@ export default function ConversationClient({
                 onChange={handleFileChange}
               />
               {file && (
-                <span className="truncate">
-                  {file.name} (
-                  {Math.round(file.size / 1024)} KB)
+                <span className="truncate text-[14px] text-zinc-300">
+                  {file.name} ({Math.round(file.size / 1024)} KB)
                 </span>
               )}
             </label>
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end sm:ml-2">
           <Button
             type="submit"
             size="sm"
+            className="h-9 px-4 text-14px"
             disabled={sending || (!content.trim() && !file)}
           >
             {sending ? "Sending…" : "Send"}

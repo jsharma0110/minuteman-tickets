@@ -5,11 +5,9 @@ import TicketListingModal from "./TicketListingModal";
 
 export default function BuySellFilter({ umassEvent }) {
   const router = useRouter();
-  const [active, setActive] = useState("buy");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleClick = (label) => {
-    setActive(label);
     if (label === "Sell") {
       setIsModalOpen(true);
     } else if (label === "Buy") {
@@ -18,27 +16,44 @@ export default function BuySellFilter({ umassEvent }) {
   };
 
   return (
-    <>
-      <div className="flex gap-3 mb-3">
-        {["Buy", "Sell"].map((label) => (
+    // give TicketListingModal a local positioning context
+    <div className="relative">
+      <div className="mb-3 flex justify-end">
+        <div className="inline-flex items-center rounded-full border border-zinc-700/80 bg-zinc-900/80 p-1 shadow-sm">
+          {/* BUY */}
           <button
-            key={label}
-            onClick={() => handleClick(label)}
-            className={`px-4 py-1.5 rounded-full font-medium ${
-              active === label
-                ? "bg-green-600 text-white"
-                : "bg-gray-100 text-gray-800"
-            }`}
+            type="button"
+            onClick={() => handleClick("Buy")}
+            className="
+              rounded-full px-4 py-1.5 
+              text-[14px] font-medium
+              bg-zinc-100/10 text-zinc-50
+              hover:bg-zinc-100/20 transition
+            "
           >
-            {label}
+            Buy
           </button>
-        ))}
+
+          {/* SELL */}
+          <button
+            type="button"
+            onClick={() => handleClick("Sell")}
+            className="
+              rounded-full px-4 py-1.5 
+              text-[14px] font-medium text-zinc-400
+              hover:text-white hover:bg-zinc-800 transition
+            "
+          >
+            Sell
+          </button>
+        </div>
       </div>
+
       <TicketListingModal
         event={umassEvent}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-    </>
+    </div>
   );
 }

@@ -174,7 +174,7 @@ export default function ProfilePage() {
         .from("avatars")
         .getPublicUrl(filePath);
 
-            const { error: updateError } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl },
       });
 
@@ -193,7 +193,6 @@ export default function ProfilePage() {
           console.error("Failed to update profiles.avatar_url", profileErr);
         }
       }
-
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) {
@@ -208,7 +207,7 @@ export default function ProfilePage() {
       setDeletingAvatar(true);
       setProfileError(null);
 
-            const { error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         data: { avatar_url: null },
       });
 
@@ -227,7 +226,6 @@ export default function ProfilePage() {
           console.error("Failed to clear profiles.avatar_url", profileErr);
         }
       }
-
     } finally {
       setDeletingAvatar(false);
     }
@@ -283,18 +281,16 @@ export default function ProfilePage() {
     setSavingId(null);
   };
 
-  // Toggle status: available <-> sold
   const handleToggleStatus = async (ticketId: string) => {
     const ticket = tickets.find((t) => t.id === ticketId);
     if (!ticket) return;
 
     const currentStatus = ticket.status ?? "available";
-    const newStatus = currentStatus === "available" ? "sold" : "available";
+       const newStatus = currentStatus === "available" ? "sold" : "available";
 
     await handleSave({ ...ticket, status: newStatus });
   };
 
-  // delete ticket + its conversations + messages
   const handleDeleteTicket = async (ticketId: string) => {
     if (!userId) return;
     const confirmed = window.confirm("Delete this ticket listing?");
@@ -303,7 +299,6 @@ export default function ProfilePage() {
     setDeletingId(ticketId);
     setTicketsError(null);
 
-    // 1) Find conversations for this ticket
     const { data: convs, error: convErr } = await supabase
       .from("conversations")
       .select("id")
@@ -318,7 +313,6 @@ export default function ProfilePage() {
 
     const convIds = (convs ?? []).map((c: any) => c.id as string);
 
-    // 2) Delete messages for those conversations
     if (convIds.length > 0) {
       const { error: msgErr } = await supabase
         .from("messages")
@@ -332,7 +326,6 @@ export default function ProfilePage() {
         return;
       }
 
-      // 3) Delete the conversations themselves
       const { error: convDelErr } = await supabase
         .from("conversations")
         .delete()
@@ -346,7 +339,6 @@ export default function ProfilePage() {
       }
     }
 
-    // 4) Finally delete the ticket
     const { error: ticketErr } = await supabase
       .from("tickets")
       .delete()
@@ -367,239 +359,268 @@ export default function ProfilePage() {
     router.push("/events");
   };
 
-  // ---- Render ----
   if (profileLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          Loading profile…
-        </p>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-zinc-950 via-zinc-900 to-black">
+        <p className="text-sm text-zinc-400">Loading profile…</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-4 py-8">
-      {/* HEADER: back button */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">My Profile</h1>
-        <Button variant="outline" onClick={handleBackToEvents}>
-          ← Back to Events
-        </Button>
-      </div>
+    <div className="min-h-screen w-full bg-gradient-to-b from-zinc-950 via-zinc-900 to-black text-foreground">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pb-12 pt-8">
+        {/* HEADER */}
+        <header className="flex items-center justify-between">
+          <div>
+            <p className="text-[12px] uppercase tracking-[0.18em] text-zinc-500">
+              Account
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              My Profile
+            </h1>
+          </div>
 
-      {profileError && (
-        <p className="text-sm text-red-500">{profileError}</p>
-      )}
-
-      {/* PROFILE CARD */}
-      <section className="flex flex-wrap items-center gap-6 rounded-xl border bg-secondary/20 p-4">
-        <div className="relative h-24 w-24 overflow-hidden rounded-full bg-muted">
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt="Profile picture"
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-2xl font-semibold">
-              {displayName.charAt(0)}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-1 flex-col gap-1 text-sm">
-          <p className="text-lg font-semibold">{displayName}</p>
-          {email && (
-            <p className="text-muted-foreground">{email}</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2">
           <Button
-            size="sm"
             variant="outline"
-            onClick={handleAvatarButtonClick}
-            disabled={uploadingAvatar}
+            onClick={handleBackToEvents}
+            className="border-zinc-700 bg-zinc-900/80 text-[14px] text-zinc-100 hover:bg-zinc-800 hover:text-white"
           >
-            {uploadingAvatar ? "Uploading…" : "Change Picture"}
+            ← Back to Events
           </Button>
-          {avatarUrl && (
+        </header>
+
+        {profileError && (
+          <p className="text-[14px] text-red-400">{profileError}</p>
+        )}
+
+        {/* PROFILE CARD */}
+        <section className="flex flex-wrap items-center gap-6 rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 shadow-lg">
+          <div className="relative h-24 w-24 overflow-hidden rounded-full bg-zinc-800">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt="Profile picture"
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-zinc-100">
+                {displayName.charAt(0)}
+              </div>
+            )}
+          </div>
+
+          <div className="flex min-w-[180px] flex-1 flex-col gap-1 text-base">
+            <p className="text-lg font-semibold text-zinc-50">
+              {displayName}
+            </p>
+            {email && (
+              <p className="text-[14px] text-zinc-400">{email}</p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 text-xs">
             <Button
               size="sm"
-              variant="destructive"
-              onClick={handleAvatarDelete}
-              disabled={deletingAvatar}
+              variant="outline"
+              onClick={handleAvatarButtonClick}
+              disabled={uploadingAvatar}
+              className="border-zinc-700 bg-zinc-900/80 text-xs text-zinc-100 hover:bg-zinc-800"
             >
-              {deletingAvatar ? "Deleting…" : "Remove Picture"}
+              {uploadingAvatar ? "Uploading…" : "Change Picture"}
             </Button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarChange}
-          />
-        </div>
-      </section>
-
-      {/* MY TICKET LISTINGS */}
-      <section>
-        <h2 className="mb-3 text-xl font-semibold">
-          My Ticket Listings
-        </h2>
-
-        {ticketsError && (
-          <p className="mb-3 text-sm text-red-500">{ticketsError}</p>
-        )}
-
-        {ticketsLoading ? (
-          <p className="text-sm text-muted-foreground">
-            Loading your tickets…
-          </p>
-        ) : tickets.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            You haven’t listed any tickets yet.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {tickets.map((ticket) => {
-              const eventInfo = eventsMap[ticket.event_id];
-              const eventLabel =
-                eventInfo?.name ?? "Unknown Event";
-
-              const effectiveStatus =
-                ticket.status ?? "available";
-              const isAvailable = effectiveStatus === "available";
-
-              return (
-                <div
-                  key={ticket.id}
-                  className="rounded-xl border bg-secondary/20 p-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="space-y-1 text-sm">
-                      <p className="font-medium">{eventLabel}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Created:{" "}
-                        {new Date(
-                          ticket.created_at
-                        ).toLocaleString()}
-                      </p>
-                      <p className="text-xs">
-                        Status:{" "}
-                        <span className="font-medium">
-                          {effectiveStatus}
-                        </span>
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <label className="flex flex-col">
-                        Section
-                        <input
-                          className="mt-1 rounded border bg-background px-2 py-1"
-                          value={ticket.section ?? ""}
-                          onChange={(e) =>
-                            updateField(
-                              ticket.id,
-                              "section",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="flex flex-col">
-                        Row
-                        <input
-                          className="mt-1 rounded border bg-background px-2 py-1"
-                          value={ticket.row ?? ""}
-                          onChange={(e) =>
-                            updateField(
-                              ticket.id,
-                              "row",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="flex flex-col">
-                        Seat
-                        <input
-                          className="mt-1 rounded border bg-background px-2 py-1"
-                          value={ticket.seat ?? ""}
-                          onChange={(e) =>
-                            updateField(
-                              ticket.id,
-                              "seat",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-
-                      <label className="flex flex-col">
-                        Price ($)
-                        <input
-                          type="number"
-                          min="0"
-                          className="mt-1 w-24 rounded border bg-background px-2 py-1"
-                          value={ticket.price ?? 0}
-                          onChange={(e) =>
-                            updateField(
-                              ticket.id,
-                              "price",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleSave(ticket)}
-                      disabled={savingId === ticket.id}
-                    >
-                      {savingId === ticket.id
-                        ? "Saving…"
-                        : "Save Changes"}
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleToggleStatus(ticket.id)}
-                      disabled={savingId === ticket.id}
-                    >
-                      {isAvailable
-                        ? "Mark as Sold"
-                        : "Mark as Available"}
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteTicket(ticket.id)}
-                      disabled={deletingId === ticket.id}
-                    >
-                      {deletingId === ticket.id
-                        ? "Deleting…"
-                        : "Delete"}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+            {avatarUrl && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleAvatarDelete}
+                disabled={deletingAvatar}
+                className="text-14"
+              >
+                {deletingAvatar ? "Deleting…" : "Remove Picture"}
+              </Button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
-        )}
-      </section>
+        </section>
+
+        {/* MY TICKET LISTINGS */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
+              My Ticket Listings
+            </h2>
+            {tickets.length > 0 && (
+              <span className="text-xs text-zinc-500">
+                {tickets.length} listing{tickets.length === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+
+          {ticketsError && (
+            <p className="text-sm text-red-400">{ticketsError}</p>
+          )}
+
+          {ticketsLoading ? (
+            <p className="text-sm text-zinc-400">
+              Loading your tickets…
+            </p>
+          ) : tickets.length === 0 ? (
+            <p className="text-sm text-zinc-400">
+              You haven&apos;t listed any tickets yet.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {tickets.map((ticket) => {
+                const eventInfo = eventsMap[ticket.event_id];
+                const eventLabel =
+                  eventInfo?.name ?? "Unknown Event";
+
+                const effectiveStatus = ticket.status ?? "available";
+                const isAvailable = effectiveStatus === "available";
+
+                return (
+                  <div
+                    key={ticket.id}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 text-base shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      {/* Left: event + meta */}
+                      <div className="space-y-1">
+                        <p className="text-lg font-medium text-zinc-50">
+                          {eventLabel}
+                        </p>
+                        <p className="text-sm text-zinc-500">
+                          Created:{" "}
+                          {new Date(
+                            ticket.created_at
+                          ).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-zinc-400">
+                          Status:{" "}
+                          <span className="font-medium text-zinc-100">
+                            {effectiveStatus}
+                          </span>
+                        </p>
+                      </div>
+
+                      {/* Right: editable fields */}
+                      <div className="flex flex-wrap gap-3 text-sm">
+                        <label className="flex flex-col text-zinc-400">
+                          <span>Section</span>
+                          <input
+                            className="mt-1 w-24 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-[16px] text-zinc-100 focus:border-zinc-400 focus:outline-none"
+                            value={ticket.section ?? ""}
+                            onChange={(e) =>
+                              updateField(
+                                ticket.id,
+                                "section",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </label>
+
+                        <label className="flex flex-col text-zinc-400">
+                          <span>Row</span>
+                          <input
+                            className="mt-1 w-20 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-[16px] text-zinc-100 focus:border-zinc-400 focus:outline-none"
+                            value={ticket.row ?? ""}
+                            onChange={(e) =>
+                              updateField(
+                                ticket.id,
+                                "row",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </label>
+
+                        <label className="flex flex-col text-zinc-400">
+                          <span>Seat</span>
+                          <input
+                            className="mt-1 w-20 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-[16px] text-zinc-100 focus:border-zinc-400 focus:outline-none"
+                            value={ticket.seat ?? ""}
+                            onChange={(e) =>
+                              updateField(
+                                ticket.id,
+                                "seat",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </label>
+
+                        <label className="flex flex-col text-zinc-400">
+                          <span>Price ($)</span>
+                          <input
+                            type="number"
+                            min="0"
+                            className="mt-1 w-28 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-[16px] text-zinc-100 focus:border-zinc-400 focus:outline-none"
+                            value={ticket.price ?? 0}
+                            onChange={(e) =>
+                              updateField(
+                                ticket.id,
+                                "price",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-4 flex flex-wrap gap-2 text-sm">
+                      <Button
+                        size="sm"
+                        onClick={() => handleSave(ticket)}
+                        disabled={savingId === ticket.id}
+                        className="bg-zinc-100 px-4 py-1.5 text-sm text-zinc-900 hover:bg-zinc-200"
+                      >
+                        {savingId === ticket.id
+                          ? "Saving…"
+                          : "Save Changes"}
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleToggleStatus(ticket.id)}
+                        disabled={savingId === ticket.id}
+                        className="border-zinc-700 bg-zinc-900/80 px-4 py-1.5 text-sm text-zinc-100 hover:bg-zinc-800"
+                      >
+                        {isAvailable
+                          ? "Mark as Sold"
+                          : "Mark as Available"}
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteTicket(ticket.id)}
+                        disabled={deletingId === ticket.id}
+                        className="px-4 py-1.5 text-sm"
+                      >
+                        {deletingId === ticket.id
+                          ? "Deleting…"
+                          : "Delete"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

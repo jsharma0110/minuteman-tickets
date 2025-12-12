@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!error) {
-      // ✅ Redirect to /events (or the provided next param)
+      // Redirect to /events (or the provided next param)
       redirect(next)
     } else {
       redirect(`/auth/error?error=${encodeURIComponent(error?.message)}`)
